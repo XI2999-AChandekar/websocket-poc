@@ -1,6 +1,6 @@
 /* eslint-disable react-hooks/exhaustive-deps */
 import React, { useEffect, useState } from 'react'
-import { w3cwebsocket as W3CWebSocket } from "websocket";
+// import { w3cwebsocket as W3CWebSocket } from "websocket";
 import { Card, Avatar, Input, Typography } from 'antd';
 import { useDispatch, useSelector } from 'react-redux'
 import { v4 as uuid } from 'uuid';
@@ -12,8 +12,8 @@ const { Search } = Input;
 const { Text } = Typography;
 const { Meta } = Card;
 
-const client = new W3CWebSocket('ws://3.7.100.88:7000/ws');
-
+// const client = new W3CWebSocket('ws://3.7.100.88:7000/ws');
+const ws = new WebSocket('ws://3.7.100.88:7000/ws');
 const Main = () => {
   const dispatch = useDispatch();
   const messages = useSelector((state) => state.message.messageData);
@@ -39,7 +39,7 @@ const Main = () => {
       }
     ));
     setSearchVal('');
-    client.send(JSON.stringify({
+    ws.send(JSON.stringify({
       action: "message",
       payload: { message: searchVal, to: userName },
       reqId: id,
@@ -59,7 +59,7 @@ const Main = () => {
   // };
 
   const onHandleJoin = (user) => {
-    client.send(JSON.stringify({
+    ws.send(JSON.stringify({
       action: "join",
       payload: { name: user },
       reqID: Math.random(),
@@ -69,7 +69,6 @@ const Main = () => {
     let found = false;
 
     if (reqId) {
-      console.log(ackowledgement, "ackowledgementackowledgementackowledgement");
       ackowledgement.forEach((a) => {
         if (a.reqId === reqId) {
           console.log(a.reqId, reqId, "a.reqId, reqId")
@@ -84,10 +83,10 @@ const Main = () => {
     setUserName(user);
   }
   useEffect(() => {
-    client.onopen = () => {
+    ws.onopen = function () {
       console.log('WebSocket Client Connected');
     };
-    client.onmessage = (message) => {
+    ws.onmessage = function message(message) {
       const dataFromServer = JSON.parse(message.data);
       if (dataFromServer.action === "join" && dataFromServer.payload.code === 200) {
         dispatch(setUsersList(dataFromServer.payload.users));
@@ -96,7 +95,6 @@ const Main = () => {
       if (dataFromServer.action === "message" && dataFromServer.payload.code === 200) {
         console.log('got reply! message', dataFromServer);
         dispatch(setSendMessageAcknowledgement(dataFromServer));
-
       }
       if (dataFromServer.action === "subscribe") {
         dispatch(setMessageList(dataFromServer.payload));
