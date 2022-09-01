@@ -1,6 +1,6 @@
+/* eslint-disable array-callback-return */
 /* eslint-disable react-hooks/exhaustive-deps */
 import React, { useEffect, useState } from 'react'
-// import { w3cwebsocket as W3CWebSocket } from "websocket";
 import { Card, Avatar, Input, Typography } from 'antd';
 import { useDispatch, useSelector } from 'react-redux'
 import { v4 as uuid } from 'uuid';
@@ -8,11 +8,10 @@ import 'antd/dist/antd.css';
 import './index.css'
 import { setMessageList, setUsersList, setSendMessage, setSendMessageAcknowledgement } from '../store';
 
-const { Search } = Input;
+const { Search: TextInput } = Input;
 const { Text } = Typography;
 const { Meta } = Card;
 
-// const client = new W3CWebSocket('ws://3.7.100.88:7000/ws');
 const ws = new WebSocket('ws://3.7.100.88:7000/ws');
 const Main = () => {
   const dispatch = useDispatch();
@@ -22,14 +21,11 @@ const Main = () => {
   const [userName, setUserName] = useState('');
   const [searchVal, setSearchVal] = useState('');
   const [isLoggedIn, setIsLoggedIn] = useState(false);
-  // const [messages, setMessages] = useState([]);
-  console.log(messages, "messagesmessagesmessages");
-  // console.log(users, "usersList");
+  const [selfUserName, setSelftUserName] = useState('');
   const onButtonClicked = (value) => {
     const id = uuid();
     dispatch(setSendMessage(
       {
-        code: 200,
         from: "You",
         to: userName,
         message: searchVal,
@@ -46,19 +42,8 @@ const Main = () => {
     }));
   };
 
-  // const setOwnMessage = (code) => {
-  //   dispatch(setSendMessage(
-  //     {
-  //       code: code,
-  //       from: userName,
-  //       message: searchVal,
-  //       time: "2022-08-10 08:13:19.31513605 +0000 UTC m=+172554.464027781"
-  //     }
-  //   ));
-  //   setSearchVal('');
-  // };
-
   const onHandleJoin = (user) => {
+    setSelftUserName(user);
     ws.send(JSON.stringify({
       action: "join",
       payload: { name: user },
@@ -69,12 +54,8 @@ const Main = () => {
     let found = false;
 
     if (reqId) {
-      ackowledgement.forEach((a) => {
-        if (a.reqId === reqId) {
-          console.log(a.reqId, reqId, "a.reqId, reqId")
-          found = true;
-        }
-      })
+      const data = ackowledgement.filter((a) => a.reqId === reqId)
+      if (data.length > 0) found = true;
     }
     return found;
   };
@@ -93,15 +74,12 @@ const Main = () => {
         setIsLoggedIn(true);
       }
       if (dataFromServer.action === "message" && dataFromServer.payload.code === 200) {
-        console.log('got reply! message', dataFromServer);
         dispatch(setSendMessageAcknowledgement(dataFromServer));
       }
       if (dataFromServer.action === "subscribe") {
         dispatch(setMessageList(dataFromServer.payload));
-        console.log('got reply! subscribe', dataFromServer);
       }
       if (dataFromServer.action === "users") {
-        // console.log('got reply! users', dataFromServer);
         dispatch(setUsersList(dataFromServer.payload.users));
       }
     };
@@ -117,20 +95,21 @@ const Main = () => {
           <div style={{ display: "flex", border: "1px solid", height: "700px" }}>
             <div style={{ width: "30%" }}>
               {users.map((user) => {
-                return (
-                  <div style={{ width: "100%", height: "70px" }}>
-                    <Card key={user} style={{ width: "100%", height: "100%", alignSelf: userName === user ? 'flex-end' : 'flex-start' }} loading={false} onClick={() => handleUserWindowChange(user)}>
-                      <Meta
-                        avatar={
-                          <Avatar style={{ color: '#f56a00', backgroundColor: '#fde3cf' }}>{user[0].toUpperCase()}</Avatar>
-                        }
-                        title={user}
-                        // description={message.message}
-                        style={{ color: "#25d366" }}
-                      />
-                    </Card>
-                    {/* <button style={{ width: "100%", height: "100%" }} onClick={() => handleUserWindowChange(user)}>{user}</button> */}
-                  </div>)
+                if (user !== selfUserName) {
+                  return (
+                    <div style={{ width: "100%", height: "70px" }}>
+                      <Card key={user} style={{ width: "100%", height: "100%", alignSelf: userName === user ? 'flex-end' : 'flex-start' }} loading={false} onClick={() => handleUserWindowChange(user)}>
+                        <Meta
+                          avatar={
+                            <Avatar style={{ color: '#f56a00', backgroundColor: '#fde3cf' }}>{user[0].toUpperCase()}</Avatar>
+                          }
+                          title={user}
+                          // description={message.message}
+                          style={{ color: "#25d366" }}
+                        />
+                      </Card>
+                    </div>)
+                }
               })}
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', paddingBottom: 50, width: "100%" }} id="messages">
@@ -158,7 +137,7 @@ const Main = () => {
             </div>
           </div>
           <div className="bottom">
-            <Search
+            <TextInput
               placeholder="Type a message"
               enterButton="Send"
               value={searchVal}
@@ -170,7 +149,7 @@ const Main = () => {
         </div >
         :
         <div style={{ padding: '200px 40px' }}>
-          <Search
+          <TextInput
             placeholder="Enter Username"
             enterButton="Join"
             size="large"
